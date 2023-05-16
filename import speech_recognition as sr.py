@@ -6,34 +6,33 @@ import pygame
 import requests
 from bs4 import BeautifulSoup
 
-# Authenticate with OpenAI's API
+# Аутентификация в OpenAI API
 try:
     openai.api_key = "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"
 except Exception as e:
     print("Ошибка при аутентификации с OpenAI API:")
     print(str(e))
 
-# Function to process user query and return relevant results
+# Функция для обработки запроса пользователя и возврата соответствующих результатов
 def complete_query(prompt):
-    # Check if prompt is a search query
-    if prompt.lower().startswith("search google for"):
-        # Execute the search and parse the results
-        query = prompt[18:]
-        url = f"https://www.google.com/search?q={query}"
+    if prompt.lower().startswith("найди мне") or prompt.lower().startswith("я хочу найти"):
+        # Искать в Google и парсить результаты
+        query = prompt[11:]
+        url = f"https://www.google.com/search?q={query}&hl=ru"
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"}
         response = requests.get(url, headers=headers)
         soup = BeautifulSoup(response.text, "html.parser")
         results = [h3.text for h3 in soup.select("#search div.r h3")]
         return "\n".join(results[:3])
     else:
-        # Execute the GPT-3 prompt completion
+        # Использовать API OpenAI для получения ответа
         response = openai.Completion.create(
             engine="davinci", prompt=prompt, max_tokens=1024, n=1, stop=None, temperature=0.5,
         )
         message = response.choices[0].text.strip()
         return message
 
-# Function to recognize user speech
+# Функция для распознавания речи пользователя
 def recognize_speech():
     r = sr.Recognizer() 
     with sr.Microphone(device_index=0) as source: 
@@ -51,7 +50,7 @@ def recognize_speech():
             query = ""
     return query
 
-# Function to synthesize text as speech
+# Функция для синтеза текста в речь
 def speak_text(text):
     try:
         tts = gTTS(text=text, lang="ru")
@@ -68,13 +67,13 @@ def speak_text(text):
         print(str(e))
 
 if __name__ == "__main__":
-    # Recognize user speech and ask for confirmation
+    # Распознать речь пользователя и запросить подтверждение
     query = recognize_speech()
     speak_text(f"Вы сказали: {query}. Это то, что вы хотели узнать?")
 
-    # Process user query and speak the response
-    response = complete_query(f"respond to \"{query}\"")
+    # Обработать запрос пользователя и выдать ответ в речи
+    response = complete_query(query)
     speak_text(response)
 
-    # Quit pygame mixer
+    # Завершить работу pygame mixer
     pygame.mixer.quit()
